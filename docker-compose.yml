@@ -1,0 +1,63 @@
+version: '3'
+services:
+  #PHP Service
+  test-app:
+    build:
+      context: .
+      dockerfile: ./docker/php/Dockerfile
+    container_name: test-app
+    restart: unless-stopped
+    tty: true
+    ports:
+      - "5173:5173"
+    environment:
+      SERVICE_NAME: test-app
+      SERVICE_TAGS: dev
+    working_dir: /var/www/test
+    volumes:
+       - .:/var/www/test
+       - ./docker/php/local.ini:/usr/local/etc/php/conf.d/local.ini
+    networks:
+      - test-network
+
+  #Nginx Service
+  test-webserver:
+    image: nginx:alpine
+    container_name: test-webserver
+    restart: unless-stopped
+    tty: true
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - .:/var/www/test
+      - ./docker/nginx/conf.d/:/etc/nginx/conf.d/
+      - ./docker/nginx/log/:/var/log/nginx/
+    networks:
+      - test-network
+
+  #MySQL Service
+  test-db:
+    image: mysql:5.7
+    container_name: test-db
+    restart: unless-stopped
+    tty: true
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_DATABASE: laravel
+      MYSQL_ROOT_PASSWORD: root
+    volumes:
+      - .:/var/www/test
+      - test-database:/var/lib/mysql
+      - ./docker/mysql/my.cnf:/etc/mysql/my.cnf
+    networks:
+      - test-network
+
+#Docker Networks
+networks:
+  test-network:
+    driver: bridge
+volumes:
+  test-database:
+    driver: local
